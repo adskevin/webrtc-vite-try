@@ -7,33 +7,27 @@
     <title>WebRTC Demo</title>
   </head>
   <body>
-    <h2>1. Start your Webcam</h2>
+    <h2>1. Select your media font</h2>
     <div class="videos">
       <span>
         <h3>Local Stream</h3>
-        <video id="webcamVideo" autoplay playsinline></video>
+        <video id="previewVideo" autoplay playsinline></video>
       </span>
-      <span>
-        <h3>Remote Stream</h3>
-        <video id="remoteVideo" autoplay playsinline></video>
-      </span>
-
-
     </div>
 
-    <button id="webcamButton">Start webcam</button>
-    <h2>2. Create a new Call</h2>
-    <button id="callButton" disabled>Create Call (offer)</button>
+    <button id="selectMediaButton">Select media</button>
+    <h2>2. Create a new Stream</h2>
+    <button id="createStreamButton" disabled>Create Stream (offer)</button>
 
-    <h2>3. Join a Call</h2>
-    <p>Answer the call from a different browser window or device</p>
+    <h2>3. Join a Stream</h2>
+    <p>Join the stream from a different browser window or device</p>
     
-    <input id="callInput" />
-    <button id="answerButton" disabled>Answer</button>
+    <input id="sessionInput" />
+    <button id="joinButton">Join</button>
 
-    <h2>4. Hangup</h2>
+    <h2>4. End</h2>
 
-    <button id="hangupButton" disabled>Hangup</button>
+    <button id="endButton" disabled>End</button>
 
     <script type="module" src="/main.js"></script>
 

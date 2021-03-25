@@ -34,48 +34,39 @@ let localStream = null;
 let remoteStream = null;
 
 // HTML elements
-const webcamButton = document.getElementById('webcamButton');
-const webcamVideo = document.getElementById('webcamVideo');
-const callButton = document.getElementById('callButton');
-const callInput = document.getElementById('callInput');
-const answerButton = document.getElementById('answerButton');
-const remoteVideo = document.getElementById('remoteVideo');
-const hangupButton = document.getElementById('hangupButton');
+const selectMediaButton = document.getElementById('selectMediaButton');
+const previewVideo = document.getElementById('previewVideo');
+const createStreamButton = document.getElementById('createStreamButton');
+const sessionInput = document.getElementById('sessionInput');
+const joinButton = document.getElementById('joinButton');
+const endButton = document.getElementById('endButton');
 
 // 1. Setup media sources
 
-webcamButton.onclick = async () => {
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  remoteStream = new MediaStream();
+selectMediaButton.onclick = async () => {
+  localStream = await navigator.mediaDevices.getDisplayMedia();
+  console.log(localStream);
 
   // Push tracks from local stream to peer connection
   localStream.getTracks().forEach((track) => {
     pc.addTrack(track, localStream);
   });
 
-  // Pull tracks from remote stream, add to video stream
-  pc.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
-  };
+  previewVideo.srcObject = localStream;
 
-  webcamVideo.srcObject = localStream;
-  remoteVideo.srcObject = remoteStream;
-
-  callButton.disabled = false;
-  answerButton.disabled = false;
-  webcamButton.disabled = true;
+  createStreamButton.disabled = false;
+  joinButton.disabled = true;
+  selectMediaButton.disabled = true;
 };
 
 // 2. Create an offer
-callButton.onclick = async () => {
+createStreamButton.onclick = async () => {
   // Reference Firestore collections for signaling
-  const callDoc = firestore.collection('calls').doc();
-  const offerCandidates = callDoc.collection('offerCandidates');
-  const answerCandidates = callDoc.collection('answerCandidates');
+  const sessionDoc = firestore.collection('calls').doc();
+  const offerCandidates = sessionDoc.collection('offerCandidates');
+  const answerCandidates = sessionDoc.collection('answerCandidates');
 
-  callInput.value = callDoc.id;
+  sessionInput.value = sessionDoc.id;
 
   // Get candidates for caller, save to db
   pc.onicecandidate = (event) => {
@@ -91,10 +82,10 @@ callButton.onclick = async () => {
     type: offerDescription.type,
   };
 
-  await callDoc.set({ offer });
+  await sessionDoc.set({ offer });
 
   // Listen for remote answer
-  callDoc.onSnapshot((snapshot) => {
+  sessionDoc.onSnapshot((snapshot) => {
     const data = snapshot.data();
     if (!pc.currentRemoteDescription && data?.answer) {
       const answerDescription = new RTCSessionDescription(data.answer);
@@ -112,23 +103,34 @@ callButton.onclick = async () => {
     });
   });
 
-  hangupButton.disabled = false;
+  endButton.disabled = false;
 };
 
 // 3. Answer the call with the unique ID
-answerButton.onclick = async () => {
-  const callId = callInput.value;
-  const callDoc = firestore.collection('calls').doc(callId);
-  const answerCandidates = callDoc.collection('answerCandidates');
-  const offerCandidates = callDoc.collection('offerCandidates');
+joinButton.onclick = async () => {
+  const sessionInputId = sessionInput.value;
+  const sessionDoc = firestore.collection('calls').doc(sessionInputId);
+  const answerCandidates = sessionDoc.collection('answerCandidates');
+  const offerCandidates = sessionDoc.collection('offerCandidates');
+
+  remoteStream = new MediaStream();
+
+  // Pull tracks from remote stream, add to video stream
+  pc.ontrack = (event) => {
+    event.streams[0].getTracks().forEach((track) => {
+      remoteStream.addTrack(track);
+    });
+  };
+
+  previewVideo.srcObject = remoteStream;
 
   pc.onicecandidate = (event) => {
     event.candidate && answerCandidates.add(event.candidate.toJSON());
   };
 
-  const callData = (await callDoc.get()).data();
+  const sessionData = (await sessionDoc.get()).data();
 
-  const offerDescription = callData.offer;
+  const offerDescription = sessionData.offer;
   await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
   const answerDescription = await pc.createAnswer();
@@ -139,7 +141,7 @@ answerButton.onclick = async () => {
     sdp: answerDescription.sdp,
   };
 
-  await callDoc.update({ answer });
+  await sessionDoc.update({ answer });
 
   offerCandidates.onSnapshot((snapshot) => {
     snapshot.docChanges().forEach((change) => {
