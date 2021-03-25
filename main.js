@@ -44,11 +44,18 @@ const endButton = document.getElementById('endButton');
 // 1. Setup media sources
 
 selectMediaButton.onclick = async () => {
-  localStream = await navigator.mediaDevices.getDisplayMedia();
+  localStream = await navigator.mediaDevices.getDisplayMedia({
+    audio: true,
+    video: {
+      width: { min: 1280 },
+      height: { min: 720 }
+    }
+  });
   console.log(localStream);
 
   // Push tracks from local stream to peer connection
   localStream.getTracks().forEach((track) => {
+    console.log(track.getSettings());
     pc.addTrack(track, localStream);
   });
 
