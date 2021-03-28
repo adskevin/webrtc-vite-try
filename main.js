@@ -46,10 +46,7 @@ const endButton = document.getElementById('endButton');
 selectMediaButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getDisplayMedia({
     audio: true,
-    video: {
-      width: { min: 1280 },
-      height: { min: 720 }
-    }
+    video: {}
   });
   console.log(localStream);
 
